@@ -93,6 +93,12 @@ if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
     terminals = np.array([(0, 0), (0, 1), (1, 0), (1, 1)])
     tree = EuclideanSteinerTree(terminals)
+    terminals = np.array([(0, 0), (1, 0),(0, 1), (1, 1)])
+    tree2 = EuclideanSteinerTree(terminals)
+
+    print(nx.weisfeiler_lehman_graph_hash(tree.graph))
+    print(nx.weisfeiler_lehman_graph_hash(tree2.graph))
+
     
     print("Initial legal moves:")
     for move in tree.legal_moves():
