@@ -86,8 +86,7 @@ class EuclideanSteinerTree:
         return len(self.component)<=1
     
     def get_hash(self):
-        h=0
-        return h
+        return nx.weisfeiler_lehman_graph_hash(self.graph)
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
