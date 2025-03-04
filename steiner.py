@@ -49,9 +49,41 @@ class EuclideanSteinerTree:
             for combo in product(*mix):
                 moves.append(combo)
         return moves
+
+    def play_move(self, move):
+        """
+        Play a legal move by adding edges or a Steiner point.
+        """
+        if len(move) == 2:
+            # Add an edge between two points
+            p1, p2 = move
+            self.graph.add_edge(p1, p2, weight=distance.euclidean(p1, p2))
+        else:
+            # Add a Steiner point for triplet (2D) or quadruplet (3D)
+            centroid = tuple(np.mean(move, axis=0))
+            self.graph.add_node(centroid, type='steiner')
+            for point in move:
+                self.graph.add_edge(centroid, point, weight=distance.euclidean(centroid, point))
+        
+        # Update connected components
+        new_component = set()
+        for point in move:
+            new_component.update(self.track_connected[point])
+            self.component.remove(self.track_connected[point])
+        self.component.append(new_component)
+        for point in new_component:
+            self.track_connected[point] = new_component
+        
+        # Remove nodes that reached max degree
+        for node in move :
+            if self.graph.degree[node] >= self.max_degree:
+                selected_set = self.track_connected[node]
+                selected_set.remove(node)
+                if len(selected_set) == 0 :
+                    self.component.remove(selected_set)
     
     def terminal(self):
-        return len(self.component)==1
+        return len(self.component)<=1
     
     def get_hash(self):
         h=0
@@ -65,4 +97,6 @@ if __name__ == "__main__":
     print("Initial legal moves:")
     for move in tree.legal_moves():
         print(move)
-    
+
+    tree.play_move(tree.legal_moves()[0])
+    pass
