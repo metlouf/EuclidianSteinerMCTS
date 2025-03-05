@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 from scipy.spatial import distance
 from itertools import product,combinations
-
+import matplotlib.pyplot as plt
 
 class EuclideanSteinerTree:
 
@@ -34,7 +34,7 @@ class EuclideanSteinerTree:
         Return terminal points with 2 or fewer neighbors.
         """
         return {node for node in self.terminals
-                 if self.graph.degree[node] <= self.max_degree}
+                 if self.graph.degree[node] <= self.dim}
     
     def legal_moves(self):
         moves = []
@@ -67,6 +67,8 @@ class EuclideanSteinerTree:
         
         # Update connected components
         new_component = set()
+        if len(move) != 2:
+            new_component.add(centroid)
         for point in move:
             new_component.update(self.track_connected[point])
             self.component.remove(self.track_connected[point])
@@ -87,6 +89,30 @@ class EuclideanSteinerTree:
     
     def get_hash(self):
         return nx.weisfeiler_lehman_graph_hash(self.graph)
+
+    def optimize(self):
+        pass
+    
+    def get_score(self):
+        if self.terminal :
+            self.optimize()
+            return sum(nx.get_edge_attributes(self.graph, 'weight').values())
+        else :
+            return None
+        
+    def plot_tree(self):
+        """
+        Plot the Steiner tree with correct node positions.
+        """
+        pos = { }
+        for node in self.graph.nodes :
+            pos[node] = node
+
+        node_colors = ['red' if self.graph.nodes[n]['type'] == 'terminal' else 'blue' for n in self.graph.nodes]
+        
+        plt.figure(figsize=(8, 8))
+        nx.draw(self.graph, pos, with_labels=True, node_color=node_colors, node_size=300, edge_color='black')
+        plt.show()
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
@@ -103,5 +129,18 @@ if __name__ == "__main__":
     for move in tree.legal_moves():
         print(move)
 
-    tree.play_move(tree.legal_moves()[0])
-    pass
+    tree.plot_tree()
+
+    tree.play_move(tree.legal_moves()[-1])
+    tree.plot_tree()
+
+    for move in tree.legal_moves():
+        print(move)
+
+    tree.play_move(tree.legal_moves()[-1])
+    tree.plot_tree()
+
+## Corige degree
+## Corrige cas ou il faut supp
+## MAil prof
+## Ajoute correction de pt de steiner
