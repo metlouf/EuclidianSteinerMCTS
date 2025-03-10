@@ -50,9 +50,20 @@ class EuclideanSteinerTree:
         mixes = combinations(self.component,size)
         for mix in mixes :
             for combo in product(*mix):
-                moves.append(combo)
+                if self.check(combo) :
+                    moves.append(combo)
         return moves
-    
+    def check(self,combo):
+        for n in combo :
+            if self.graph.nodes[n]['type'] != 'terminal' :
+                return False
+            
+        for n in combo :
+            if self.graph.degree[n] >= self.dim:
+                return False
+        return True
+
+
     def get_bifurcation(self):
         moves = []
         for u,v in self.graph.edges:
@@ -94,15 +105,6 @@ class EuclideanSteinerTree:
         self.component.append(new_component)
         for point in new_component:
             self.track_connected[point] = new_component
-        
-        # Remove nodes that reached max degree
-        for node in move :
-            if self.graph.nodes[node]['type'] == 'terminal' :
-                if self.graph.degree[node] >= self.dim:
-                    selected_set = self.track_connected[node]
-                    selected_set.remove(node)
-                    if len(selected_set) == 0 :
-                        self.component.remove(selected_set)
     
     def terminal(self):
         return len(self.component)<=1
@@ -162,15 +164,12 @@ if __name__ == "__main__":
 
     for move in tree.legal_moves():
         print(move)
-    tree.play_move(tree.legal_moves()[-1])
+    tree.play_move(tree.legal_moves()[-3])
     tree.plot_tree()
 
     print("########################")
-
-    for move in tree.legal_moves():
-        print(move)
-    tree.play_move(tree.legal_moves()[-1])
-    tree.plot_tree()
+    print(tree.component)
+    print(tree.legal_moves())
     
 
 ## Ajoute correction de pt de steiner
