@@ -11,7 +11,8 @@ class EuclideanSteinerTree:
         Initialize the Steiner Tree with terminal points.
         :param points: A numpy array of shape (N, 2) or (N, 3) representing terminal points in 2D or 3D.
         """
-        self.dim = points.shape[1]  # Determine if 2D or 3D
+        self.dim = points.shape[1]  # Determine if 2D or 3D 
+        #(the code now works for 2D only may update legal moves meth for 3D)
         self.max_degree = self.dim + 1
 
         self.terminals = set(map(tuple, points))  # Convert to set for quick lookup
@@ -38,8 +39,10 @@ class EuclideanSteinerTree:
     
     def legal_moves(self):
         moves = []
-        for i in range(2,self.max_degree+1):
-            moves+=self.get_combination(size = i)
+        ## add simple edges
+        moves+=self.get_combination(size = 2)
+        ## add edges with steiner point
+        moves+=self.get_bifurcation()
         return moves
     
     def get_combination(self,size):
@@ -48,6 +51,16 @@ class EuclideanSteinerTree:
         for mix in mixes :
             for combo in product(*mix):
                 moves.append(combo)
+        return moves
+    
+    def get_bifurcation(self):
+        moves = []
+        for u,v in self.graph.edges:
+            comp = self.track_connected[u]
+            for other_comp in self.component :
+                if comp!=other_comp :
+                    for k in other_comp :
+                        moves.append((u,v,k))
         return moves
 
     def play_move(self, move):
@@ -59,30 +72,37 @@ class EuclideanSteinerTree:
             p1, p2 = move
             self.graph.add_edge(p1, p2, weight=distance.euclidean(p1, p2))
         else:
-            # Add a Steiner point for triplet (2D) or quadruplet (3D)
+            # Add a Steiner point for triplet (2D)
             centroid = tuple(np.mean(move, axis=0))
             self.graph.add_node(centroid, type='steiner')
             for point in move:
                 self.graph.add_edge(centroid, point, weight=distance.euclidean(centroid, point))
-        
+            self.graph.remove_edge(move[0],move[1])
         # Update connected components
         new_component = set()
-        if len(move) != 2:
+
+        if len(move)>2 : #Steiner Point addition case
+            new_component.update(self.track_connected[move[0]])
+            new_component.update(self.track_connected[move[-1]])
+            self.component.remove(self.track_connected[move[0]])
+            self.component.remove(self.track_connected[move[-1]])
             new_component.add(centroid)
-        for point in move:
-            new_component.update(self.track_connected[point])
-            self.component.remove(self.track_connected[point])
+        else : #Other case
+            for point in move:
+                new_component.update(self.track_connected[point])
+                self.component.remove(self.track_connected[point])
         self.component.append(new_component)
         for point in new_component:
             self.track_connected[point] = new_component
         
         # Remove nodes that reached max degree
         for node in move :
-            if self.graph.degree[node] >= self.max_degree:
-                selected_set = self.track_connected[node]
-                selected_set.remove(node)
-                if len(selected_set) == 0 :
-                    self.component.remove(selected_set)
+            if self.graph.nodes[node]['type'] == 'terminal' :
+                if self.graph.degree[node] >= self.dim:
+                    selected_set = self.track_connected[node]
+                    selected_set.remove(node)
+                    if len(selected_set) == 0 :
+                        self.component.remove(selected_set)
     
     def terminal(self):
         return len(self.component)<=1
@@ -128,19 +148,30 @@ if __name__ == "__main__":
     print("Initial legal moves:")
     for move in tree.legal_moves():
         print(move)
-
-    tree.plot_tree()
-
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
+
+    print("########################")
 
     for move in tree.legal_moves():
         print(move)
-
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
 
-## Corige degree
-## Corrige cas ou il faut supp
-## MAil prof
+    print("########################")
+
+    for move in tree.legal_moves():
+        print(move)
+    tree.play_move(tree.legal_moves()[-1])
+    tree.plot_tree()
+
+    print("########################")
+
+    for move in tree.legal_moves():
+        print(move)
+    tree.play_move(tree.legal_moves()[-1])
+    tree.plot_tree()
+    
+
 ## Ajoute correction de pt de steiner
+## Ajoute score
