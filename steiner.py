@@ -53,6 +53,7 @@ class EuclideanSteinerTree:
                 if self.check(combo) :
                     moves.append(combo)
         return moves
+    
     def check(self,combo):
         for n in combo :
             if self.graph.nodes[n]['type'] != 'terminal' :
@@ -138,7 +139,7 @@ class EuclideanSteinerTree:
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
-    terminals = np.array([(0, 0), (0, 1), (1, 0), (1, 1)])
+    terminals = np.array([(0, 0), (0, 1), (1, 0)])
     tree = EuclideanSteinerTree(terminals)
     terminals = np.array([(0, 0), (1, 0),(0, 1), (1, 1)])
     tree2 = EuclideanSteinerTree(terminals)
@@ -164,7 +165,7 @@ if __name__ == "__main__":
 
     for move in tree.legal_moves():
         print(move)
-    tree.play_move(tree.legal_moves()[-3])
+    tree.play_move(tree.legal_moves()[-2])
     tree.plot_tree()
 
     print("########################")
