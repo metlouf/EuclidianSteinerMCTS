@@ -42,12 +42,28 @@ class EuclideanSteinerTree:
                 for merge in merges:
                     #merge_moves.append(sorted(list(merge)+[node], key=lambda x: (x,) if isinstance(x, int) else x))
                     # Place the node with high degree at the end !
-                    #TODO : We can check here if Fermat
+                    #TODO : We can check here if Fermat I mean not mandatory could even be a bad idea
                     merge_moves.append(list(merge)+[node])
         return merge_moves
 
     def get_swaps(self):
-        return self.graph.egdes()
+        swap_moves = []
+        for e in self.graph.edges():
+            if ((self.graph.nodes[e[0]]['type']=='terminal') 
+                or (self.graph.nodes[e[1]]['type']=='terminal')) :
+                    
+                    graph = self.graph.copy()
+                    graph.remove_edge(*e)
+                    components = list(nx.connected_components(graph))
+                    assert len(components) == 2
+
+                    #######TODO : REFINE HERE Take only nodes with a certain degree
+                    replace_by = product(components[0],components[1])
+                    for r in replace_by :
+                        if (e[0]!=r[0]) or (e[1]!=r[1]):
+                            swap_moves.append((e,r))
+
+        return swap_moves
 
     def legal_moves(self):
         moves = []
@@ -63,6 +79,18 @@ class EuclideanSteinerTree:
             self.replace_triangle_with_steiner_point(move)
         else :
             raise ValueError
+
+    def play_swap(self,move):
+        assert len(move)==2
+        to_remove,to_replace = move
+
+        if (self.graph.nodes[to_remove[0]]['type']=='steiner'):
+            pass
+        elif (self.graph.nodes[to_remove[1]]['type']=='steiner'):
+            pass
+        else :
+            pass
+
 
 
     def replace_triangle_with_steiner_point(self, nodes_list):
@@ -82,10 +110,11 @@ class EuclideanSteinerTree:
         pos3 = self.graph.nodes[node3]['position']
         
         # For init, let's use the geometric center (centroid)
-        steiner_pos = tuple(np.mean([pos1, pos2, pos3], axis=0))
+        steiner_pos = np.mean([pos1, pos2, pos3], axis=0)
         
-        # Create a new node ID for the Steiner point
+        # Create a new node ID for the Steiner point (Choose anaming conv)
         new_node_id = tuple(sorted(nodes_list, key=lambda x: (x,) if isinstance(x, int) else x))
+        #new_node_id = max(self.graph.nodes)+1
         
         # Add the new Steiner point to the graph
         self.graph.add_node(new_node_id, type='steiner', position=steiner_pos)
@@ -100,6 +129,7 @@ class EuclideanSteinerTree:
         return nx.weisfeiler_lehman_graph_hash(self.graph)
 
     def optimize(self):
+        #TODO
         pass
     
     def get_score(self):
@@ -128,13 +158,14 @@ class EuclideanSteinerTree:
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
-    terminals = np.array([(0, 0), (0, 1), (1, 0), (1, 1)],dtype=np.float32)
+    terminals = np.array([(0, 0),(0, 1), (1, 0), (1, 1)],dtype=np.float32)
     tree = EuclideanSteinerTree(terminals)
     tree.plot_tree()
-    tree.play_move(tree.get_merges()[0])
+    tree.play_move(tree.get_merges()[1])
     tree.plot_tree()
     print(nx.weisfeiler_lehman_graph_hash(tree.graph))
-    
+    tree.get_swaps()
+    pass
 
 ## Ajoute correction de pt de steiner
 ## Ajoute score
