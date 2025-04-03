@@ -3,6 +3,7 @@ import networkx as nx
 from scipy.spatial import distance
 from itertools import product,combinations
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
 
 class EuclideanSteinerTree:
 
@@ -58,7 +59,6 @@ class EuclideanSteinerTree:
                     components = list(nx.connected_components(graph))
                     assert len(components) == 2
 
-                    #######TODO : REFINE HERE Take only nodes with a certain degree
                     replace_by = product(components[0],components[1])
                     for r in replace_by :
                         if (e[0]!=r[0]) or (e[1]!=r[1]):
@@ -162,47 +162,113 @@ class EuclideanSteinerTree:
             pos = self.graph.nodes[node]['position'] 
             distance = np.linalg.norm((steiner_pos- pos))
             self.graph.add_edge(new_node_id, node, weight=distance)
+        
+        self.optimize()
 
     def get_hash(self):
         return nx.weisfeiler_lehman_graph_hash(self.graph)
 
     def optimize(self):
-        #TODO
-        pass
+        variables_dict = {}
+        idx = 0
+
+        ### Find Variables AKA Steiner points
+        for node in self.graph:
+            if (self.graph.nodes[node]['type']=='steiner'):
+                variables_dict[node]=idx
+                idx+=1
+
+        ### Init their position Array
+        var_array = np.zeros((idx,2),np.float32)
+        for node,i in variables_dict.items():
+            var_array[i] = self.graph.nodes[node]['position']
+
+        relevant_connexion = []
+
+        for e in self.graph.edges():
+            t_0 = self.graph.nodes[e[0]]['type']
+            t_1 = self.graph.nodes[e[1]]['type']
+
+            if ((t_0=='steiner') or (t_1=='steiner')):
+                if (t_0=='steiner'):
+                    if (t_1=='steiner'):
+                        connexion = variables_dict[e[0]],variables_dict[e[1]]
+                        relevant_connexion.append(connexion) 
+                    else :
+                        connexion = variables_dict[e[0]],self.graph.nodes[e[1]]['position']
+                        relevant_connexion.append(connexion)
+                else :
+                    if (t_0=='steiner'):
+                        connexion = variables_dict[e[0]],variables_dict[e[1]]
+                        relevant_connexion.append(connexion) 
+                    else :
+                        connexion = variables_dict[e[1]],self.graph.nodes[e[0]]['position']
+                        relevant_connexion.append(connexion)
+
+        function_to_minimize = self.create_problem(relevant_connexion,var_array.shape[0])
+
+        result = minimize(
+            function_to_minimize, 
+            var_array.flatten(), 
+            method='L-BFGS-B'
+        )
+        
+        # Reshape the optimized positions
+        optimized_positions = result.x.reshape((-1,2))
+        for node,i in variables_dict.items():
+            self.graph.nodes[node]['position'] = optimized_positions[i]
+    
+    def create_problem(self,relevant_connexion,jump):
+        def function_to_minimize(X):
+            sum = 0
+            for connexion in relevant_connexion:
+                x0,y0 = X[connexion[0]*jump:connexion[0]*jump+2]
+                if type(connexion[1])==int :
+                    x1,y1 = X[connexion[1]*jump:connexion[1]*jump+2]
+                    sum+= ((x0-x1)**2+(y0-y1)**2)
+                else :
+                    x1,y1 = connexion[1]
+                    sum+= ((x0-x1)**2+(y0-y1)**2)
+            return sum
+        return function_to_minimize
     
     def get_score(self):
-        if self.terminal :
-            self.optimize()
-            return sum(nx.get_edge_attributes(self.graph, 'weight').values())
-        else :
-            return None
+        return sum(nx.get_edge_attributes(self.graph, 'weight').values())
+
+        
+    def fill_plot(self,ax):
+        ax.clear()
+        for n in self.graph.nodes :
+            x,y = self.graph.nodes[n]['position'][0], self.graph.nodes[n]['position'][1]
+            c = 'red' if self.graph.nodes[n]['type'] == 'terminal' else 'blue'
+            ax.scatter(x,y,c=c)
+            ax.annotate(str(n),(x,y))
+
+        for e in self.graph.edges():
+            pos_0 = self.graph.nodes[e[0]]['position'] 
+            pos_1 = self.graph.nodes[e[1]]['position'] 
+            ax.plot([pos_0[0],pos_1[0]],[pos_0[1],pos_1[1]],c='black')
         
     def plot_tree(self):
         """
         Plot the Steiner tree with correct node positions.
         """
-        plt.figure(figsize=(8, 8))
-        for n in self.graph.nodes :
-            x,y = self.graph.nodes[n]['position'][0], self.graph.nodes[n]['position'][1]
-            c = 'red' if self.graph.nodes[n]['type'] == 'terminal' else 'blue'
-            plt.scatter(x,y,c=c)
-            plt.annotate(str(n),(x,y))
-
-        for e in self.graph.edges():
-            pos_0 = self.graph.nodes[e[0]]['position'] 
-            pos_1 = self.graph.nodes[e[1]]['position'] 
-            plt.plot([pos_0[0],pos_1[0]],[pos_0[1],pos_1[1]],c='black')
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.set_aspect('equal')
+        self.fill_plot(ax)
         plt.show()
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
-    terminals = np.array([(0, 0),(0, 1), (1, 0), (1, 1),(2, 0.5)],dtype=np.float32)
+    terminals = np.array([(0., 0),(0, 1), (1, 0), (1, 1)])#,(2, 0.5)],dtype=np.float32)
     tree = EuclideanSteinerTree(terminals)
     tree.plot_tree()
-    tree.play_move(tree.get_moves()[1])
+    tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
-    print(nx.weisfeiler_lehman_graph_hash(tree.graph))
-    print(tree.get_swaps())
+    tree.play_move(tree.legal_moves()[-1])
+    tree.plot_tree()
+    #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
+    #print(tree.get_swaps())
     pass
 
 ## Ajoute correction de pt de steiner

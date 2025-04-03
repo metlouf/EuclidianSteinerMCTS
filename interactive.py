@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 def play_interactive_game(tree):
     """
     Play the tree game interactively in the terminal.
@@ -9,7 +11,19 @@ def play_interactive_game(tree):
     print("-----------------------------------")
     
     game_over = False
-    
+
+
+    plt.ion()
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.set_aspect('equal')
+
+    # Display current state
+    print("\nCurrent Tree :")
+    tree.fill_plot(ax)
+    plt.draw()
+    init_score = tree.get_score()
+    print("Score :", init_score)
+
     while not game_over:
 
         
@@ -21,10 +35,6 @@ def play_interactive_game(tree):
         for i, move in enumerate(moves, 1):
             mode = "Swap" if len(move)==2 else "Merge"
             print(f"{i}. {mode} {move}")
-
-        # Display current state
-        print("\nCurrent Tree (Close window before writing a move):")
-        tree.plot_tree()
 
         if not moves:
             print("\nGame ended.")
@@ -55,10 +65,21 @@ def play_interactive_game(tree):
         # Play the selected move
         print(f"\nPlaying move: {selected_move}")
         tree.play_move(selected_move)
+        tree.fill_plot(ax)
+        plt.draw()
+        print("Score :", tree.get_score())
         
     # Show final state
-    print("\nFinal Tree:")
-    tree.plot_tree()
+    print("\nFinal Score:")
+    final_score = tree.get_score()
+    print(final_score)
+
+    if init_score > final_score:
+        rho =(final_score)/init_score
+        print("You win ! Ratio =",rho)
+    else :
+        print("NOOB")
+
     print("\nGame ended.")
 
 # Example usage:
@@ -67,6 +88,6 @@ if __name__ == "__main__":
     from src.steiner import EuclideanSteinerTree
     import numpy as np
 
-    terminals = np.array([(0, 0),(0, 1), (1, 0), (1, 1),(2, 0.5)],dtype=np.float32)
+    terminals = np.array([(0, 0),(0, 1), (1, 0), (1, 1),(0.5, 0.5)],dtype=np.float32)
     tree = EuclideanSteinerTree(terminals)
     play_interactive_game(tree)
