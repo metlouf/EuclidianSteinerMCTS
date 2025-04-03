@@ -4,6 +4,8 @@ from scipy.spatial import distance
 from itertools import product,combinations
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+#from torchmin import minimize
+#import torch
 
 class EuclideanSteinerTree:
 
@@ -183,7 +185,8 @@ class EuclideanSteinerTree:
         for node,i in variables_dict.items():
             var_array[i] = self.graph.nodes[node]['position']
 
-        relevant_connexion = []
+        relevant_connexion_st = []
+        relevant_connexion_ss = []
 
         for e in self.graph.edges():
             t_0 = self.graph.nodes[e[0]]['type']
@@ -193,44 +196,38 @@ class EuclideanSteinerTree:
                 if (t_0=='steiner'):
                     if (t_1=='steiner'):
                         connexion = variables_dict[e[0]],variables_dict[e[1]]
-                        relevant_connexion.append(connexion) 
+                        #Steiner - Steiner
+                        relevant_connexion_ss.append(connexion) 
                     else :
                         connexion = variables_dict[e[0]],self.graph.nodes[e[1]]['position']
-                        relevant_connexion.append(connexion)
+                        #Steiner - Terminal
+                        relevant_connexion_st.append(connexion)
                 else :
                     if (t_0=='steiner'):
                         connexion = variables_dict[e[0]],variables_dict[e[1]]
-                        relevant_connexion.append(connexion) 
+                        #Steiner - Steiner
+                        relevant_connexion_ss.append(connexion) 
                     else :
                         connexion = variables_dict[e[1]],self.graph.nodes[e[0]]['position']
-                        relevant_connexion.append(connexion)
+                        #Steiner - Terminal
+                        relevant_connexion_st.append(connexion)
 
-        function_to_minimize = self.create_problem(relevant_connexion,var_array.shape[0])
-
+        function_to_minimize = create_problem(relevant_connexion_st,
+                                                   relevant_connexion_ss,
+                                                   var_array.shape[1])
+        
         result = minimize(
             function_to_minimize, 
             var_array.flatten(), 
-            method='L-BFGS-B'
+            method='BFGS',
+            options={'eps': 1e-10,'ftol': 1e-10,'maxiter':1000}
         )
         
         # Reshape the optimized positions
         optimized_positions = result.x.reshape((-1,2))
         for node,i in variables_dict.items():
             self.graph.nodes[node]['position'] = optimized_positions[i]
-    
-    def create_problem(self,relevant_connexion,jump):
-        def function_to_minimize(X):
-            sum = 0
-            for connexion in relevant_connexion:
-                x0,y0 = X[connexion[0]*jump:connexion[0]*jump+2]
-                if type(connexion[1])==int :
-                    x1,y1 = X[connexion[1]*jump:connexion[1]*jump+2]
-                    sum+= ((x0-x1)**2+(y0-y1)**2)
-                else :
-                    x1,y1 = connexion[1]
-                    sum+= ((x0-x1)**2+(y0-y1)**2)
-            return sum
-        return function_to_minimize
+
     
     def get_score(self):
         return sum(nx.get_edge_attributes(self.graph, 'weight').values())
@@ -241,22 +238,66 @@ class EuclideanSteinerTree:
         for n in self.graph.nodes :
             x,y = self.graph.nodes[n]['position'][0], self.graph.nodes[n]['position'][1]
             c = 'red' if self.graph.nodes[n]['type'] == 'terminal' else 'blue'
-            ax.scatter(x,y,c=c)
-            ax.annotate(str(n),(x,y))
+            ax.scatter(x,y,c=c,s=100)
+            ax.annotate(str(n),(x,y),fontsize=6, fontweight='bold'
+                        ,bbox=dict(facecolor='white', alpha=0.4),
+                        textcoords="offset points", xytext=(8,5), ha='center')
 
         for e in self.graph.edges():
             pos_0 = self.graph.nodes[e[0]]['position'] 
             pos_1 = self.graph.nodes[e[1]]['position'] 
             ax.plot([pos_0[0],pos_1[0]],[pos_0[1],pos_1[1]],c='black')
+        title = "Score : "+str(self.get_score())
+        ax.set_title(title)
         
-    def plot_tree(self):
+    def plot_tree(self,edge_only = False):
         """
         Plot the Steiner tree with correct node positions.
         """
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_aspect('equal')
-        self.fill_plot(ax)
+        if edge_only : self.fill_edge_only(ax)
+        else : self.fill_plot(ax)
+
         plt.show()
+
+    def manually_load_steiner_points(self,steiner_points):
+        for point_idx in range(steiner_points.shape[0]):
+            self.graph.add_node(point_idx+max(self.graph.nodes)+1, type='steiner',position=steiner_points[point_idx])
+        for i in self.graph:
+            for j in self.graph:
+                    # Add edge with distance as weight
+                    if i!=j :
+                        pi = self.graph.nodes[i]['position'] 
+                        pj = self.graph.nodes[j]['position'] 
+                        self.graph.add_edge(i, j, weight=np.linalg.norm((pi-pj)))
+        self.graph = nx.minimum_spanning_tree(self.graph, weight='weight')
+    
+    def fill_edge_only(self,ax,visible=True):
+        lines = []
+        for e in self.graph.edges() :
+            pos_0 = self.graph.nodes[e[0]]["position"]
+            pos_1 = self.graph.nodes[e[1]]["position"]
+            line, = ax.plot([pos_0[0], pos_1[0]], [pos_0[1], pos_1[1]], 
+                            c="green", linewidth=2, visible=visible,linestyle="dotted")
+            lines.append(line)
+        return lines
+
+def create_problem(relevant_connexion_st,relevant_connexion_ss,jump):
+    def function_to_minimize(X):
+        sum = 0
+        for connexion in relevant_connexion_st:
+            sum+= np.linalg.norm(
+                ((X[connexion[0]*jump:connexion[0]*jump+2])-
+                 connexion[1])
+                )
+        for connexion in relevant_connexion_ss :
+            sum+= np.linalg.norm(
+                (X[connexion[0]*jump:connexion[0]*jump+2] - 
+                 X[connexion[1]*jump:connexion[1]*jump+2])
+            )
+        return sum
+    return function_to_minimize
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
@@ -266,7 +307,7 @@ if __name__ == "__main__":
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
     tree.play_move(tree.legal_moves()[-1])
-    tree.plot_tree()
+    tree.plot_tree(edge_only=True)
     #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
     #print(tree.get_swaps())
     pass
