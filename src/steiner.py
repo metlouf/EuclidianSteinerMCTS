@@ -6,15 +6,16 @@ import matplotlib.pyplot as plt
 
 class EuclideanSteinerTree:
 
-    def __init__(self, points: np.ndarray):
+    def __init__(self, points: np.ndarray,naming=None):
         """
         Initialize the Steiner Tree with terminal points and compute minimum spanning tree.
         :param points: A numpy array of shape (N, 2) or (N, 3) representing terminal points in 2D or 3D.
         """
-        self.dim = points.shape[1]  # Determine if 2D or 3D
+        assert points.shape[1] == 2 #(Now only works on 2D)
+        self.dim = points.shape[1]  # Determine if 2D or 3D 
         self.max_degree = self.dim + 1
         self.graph = nx.Graph()
-        
+        self.naming = naming
         # Add terminal nodes to the graph
         for point_idx in range(points.shape[0]):
             self.graph.add_node(point_idx, type='terminal',position=points[point_idx])
@@ -61,7 +62,8 @@ class EuclideanSteinerTree:
                     replace_by = product(components[0],components[1])
                     for r in replace_by :
                         if (e[0]!=r[0]) or (e[1]!=r[1]):
-                            swap_moves.append((e,r))
+                            if ((graph.degree[r[0]]<2) and (graph.degree[r[1]]<2)):
+                                swap_moves.append((e,r))
 
         return swap_moves
 
@@ -80,16 +82,51 @@ class EuclideanSteinerTree:
         else :
             raise ValueError
 
+    def separate_steiner_connection(self,steiner,terminal):
+
+        neighbors = [t[-1] for t in self.graph.edges(steiner)]
+        assert (len(neighbors)==3) and (terminal in neighbors)
+        t_idx = neighbors.index(terminal)
+        neighbors.pop(t_idx)
+
+        node1, node2 = neighbors
+        pos_1 = self.graph.nodes[node1]['position']  
+        pos_2  = self.graph.nodes[node2]['position']
+        distance = np.linalg.norm((pos_1- pos_2))
+        self.graph.add_edge(node1, node2, weight=distance)
+
+        self.graph.remove_node(steiner)
+
+    def add_new_edge(self,to_replace):
+        pos_1 = self.graph.nodes[to_replace[0]]['position']  
+        pos_2  = self.graph.nodes[to_replace[1]]['position']
+        distance = np.linalg.norm((pos_1- pos_2))
+        self.graph.add_edge(to_replace[0], to_replace[1], weight=distance)
+
     def play_swap(self,move):
         assert len(move)==2
         to_remove,to_replace = move
 
-        if (self.graph.nodes[to_remove[0]]['type']=='steiner'):
-            pass
+        if  ((self.graph.nodes[to_remove[0]]['type']=='terminal') 
+             and (self.graph.nodes[to_remove[1]]['type']=='terminal')):
+            self.graph.remove_edge(to_remove[0], to_remove[1])
+            self.add_new_edge(to_replace)
+
+        elif (self.graph.nodes[to_remove[0]]['type']=='steiner'):
+            assert (self.graph.nodes[to_remove[1]]['type']=='terminal')
+            steiner,terminal = to_remove[0],to_remove[1]
+            self.separate_steiner_connection(steiner,terminal)
+            ######## BEWARE WHEN LINKING AGAIN IF STEINER TOO
+            self.add_new_edge(to_replace)
+
         elif (self.graph.nodes[to_remove[1]]['type']=='steiner'):
-            pass
+            assert (self.graph.nodes[to_remove[0]]['type']=='terminal')
+            steiner,terminal = to_remove[1],to_remove[0]
+            self.separate_steiner_connection(steiner,terminal)
+            self.add_new_edge(to_replace)
+            
         else :
-            pass
+            raise ValueError
 
 
 
@@ -113,8 +150,9 @@ class EuclideanSteinerTree:
         steiner_pos = np.mean([pos1, pos2, pos3], axis=0)
         
         # Create a new node ID for the Steiner point (Choose anaming conv)
-        new_node_id = tuple(sorted(nodes_list, key=lambda x: (x,) if isinstance(x, int) else x))
-        #new_node_id = max(self.graph.nodes)+1
+        if self.naming :
+            new_node_id = tuple(sorted(nodes_list, key=lambda x: (x,) if isinstance(x, int) else x))
+        else : new_node_id = max(self.graph.nodes)+1
         
         # Add the new Steiner point to the graph
         self.graph.add_node(new_node_id, type='steiner', position=steiner_pos)
@@ -158,14 +196,14 @@ class EuclideanSteinerTree:
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
-    terminals = np.array([(0, 0),(0, 1), (1, 0), (1, 1)],dtype=np.float32)
+    terminals = np.array([(0, 0),(0, 1), (1, 0), (1, 1),(2, 0.5)],dtype=np.float32)
     tree = EuclideanSteinerTree(terminals)
     tree.plot_tree()
-    tree.play_move(tree.get_merges()[1])
+    tree.play_move(tree.get_moves()[1])
     tree.plot_tree()
     print(nx.weisfeiler_lehman_graph_hash(tree.graph))
-    tree.get_swaps()
+    print(tree.get_swaps())
     pass
 
 ## Ajoute correction de pt de steiner
-## Ajoute score
+## Ajoute score + ORLIB Loader
