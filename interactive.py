@@ -104,7 +104,6 @@ if __name__ == "__main__":
 
     from src.steiner import EuclideanSteinerTree
     import numpy as np
-
     from src.orlib_loader import load_problem_file,load_solution_file
 
     choice = [1,10,20,30,40,50,60]

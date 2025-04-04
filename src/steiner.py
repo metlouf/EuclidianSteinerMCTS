@@ -31,6 +31,8 @@ class EuclideanSteinerTree:
         
         # Compute minimum spanning tree
         self.graph = nx.minimum_spanning_tree(self.graph, weight='weight')
+        self.MST_score = self.get_score()
+
 
     def get_merges(self):
         merge_moves = []
@@ -38,7 +40,7 @@ class EuclideanSteinerTree:
             # Get all terminal nodes with a degree >=2
             if (self.graph.degree[node]>= self.dim) and (self.graph.nodes[node]['type']=='terminal'):
                 merges = []
-                neighbors = [t[-1] for t in self.graph.edges(node)]
+                neighbors = sorted([t[-1] for t in self.graph.edges(node)])
                 mixes = combinations(neighbors,2)
                 for mix in mixes :
                     merges.append(mix)
@@ -220,7 +222,7 @@ class EuclideanSteinerTree:
             function_to_minimize, 
             var_array.flatten(), 
             method='BFGS',
-            options={'eps': 1e-10,'ftol': 1e-10,'maxiter':1000}
+            options={'eps': 1e-10,'maxiter':1000}
         )
         
         # Reshape the optimized positions
@@ -244,6 +246,8 @@ class EuclideanSteinerTree:
     def get_score(self):
         return sum(nx.get_edge_attributes(self.graph, 'weight').values())
 
+    def get_normalized_score(self):
+        return 1-(self.get_score()/self.MST_score)
         
     def fill_plot(self,ax):
         ax.clear()
@@ -323,6 +327,3 @@ if __name__ == "__main__":
     #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
     #print(tree.get_swaps())
     pass
-
-## Ajoute correction de pt de steiner
-## Ajoute score + ORLIB Loader
