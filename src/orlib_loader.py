@@ -77,7 +77,7 @@ def load_solution_file(filename):
     
     return solutions
 
-
+"""
 def main():
     # File paths
     problem_file = "data/estein10.txt"
@@ -105,3 +105,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+"""

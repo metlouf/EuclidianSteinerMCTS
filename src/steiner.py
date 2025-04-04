@@ -63,6 +63,7 @@ class EuclideanSteinerTree:
 
                     replace_by = product(components[0],components[1])
                     for r in replace_by :
+                        r = tuple(sorted(r))
                         if (e[0]!=r[0]) or (e[1]!=r[1]):
                             if ((graph.degree[r[0]]<2) and (graph.degree[r[1]]<2)):
                                 swap_moves.append((e,r))
@@ -118,7 +119,6 @@ class EuclideanSteinerTree:
             assert (self.graph.nodes[to_remove[1]]['type']=='terminal')
             steiner,terminal = to_remove[0],to_remove[1]
             self.separate_steiner_connection(steiner,terminal)
-            ######## BEWARE WHEN LINKING AGAIN IF STEINER TOO
             self.add_new_edge(to_replace)
 
         elif (self.graph.nodes[to_remove[1]]['type']=='steiner'):
@@ -227,6 +227,18 @@ class EuclideanSteinerTree:
         optimized_positions = result.x.reshape((-1,2))
         for node,i in variables_dict.items():
             self.graph.nodes[node]['position'] = optimized_positions[i]
+        
+        # Update weights
+        for e in self.graph.edges():
+            t_0 = self.graph.nodes[e[0]]['type']
+            t_1 = self.graph.nodes[e[1]]['type']
+
+            if ((t_0=='steiner') or (t_1=='steiner')):
+                pos0 = self.graph.nodes[e[0]]['position']
+                pos1 = self.graph.nodes[e[1]]['position']
+                dist = np.linalg.norm((pos0-pos1)) 
+                self.graph[e[0]][e[1]]['weight'] = dist
+        
 
     
     def get_score(self):
