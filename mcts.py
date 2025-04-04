@@ -3,8 +3,9 @@ import numpy as np
 from src.orlib_loader import load_problem_file,load_solution_file
 import copy
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
-def greedy_search(tree : EuclideanSteinerTree):
+def greedy_search(tree : EuclideanSteinerTree,Verbose = False,max_depth = 1e9):
 
     best_score = tree.get_normalized_score()
     legal_moves = tree.legal_moves()
@@ -14,10 +15,13 @@ def greedy_search(tree : EuclideanSteinerTree):
 
     moves = []
     indexes  = []
+    depth = 0
 
-    while True :
-
-        for idx,move in enumerate(legal_moves) :
+    while True and (depth < max_depth) :
+        depth+=1
+        enum = enumerate(legal_moves)
+        if Verbose : enum = tqdm(enum)
+        for idx,move in enum :
             test_tree = copy.deepcopy(tree)
             test_tree.play_move(move)
             score = test_tree.get_normalized_score()
@@ -29,8 +33,6 @@ def greedy_search(tree : EuclideanSteinerTree):
         if best_move!="STOP":
 
             tree.play_move(best_move)
-            score = tree.get_normalized_score()
-            assert score == best_score
             moves.append(best_move)
             indexes.append(best_idx)
 
@@ -39,11 +41,13 @@ def greedy_search(tree : EuclideanSteinerTree):
             best_idx = "q"
             legal_moves = tree.legal_moves()
         else :
-            return score,moves,indexes
-        
+            return best_score,moves,indexes
+    return best_score,moves,indexes
+
+
 if __name__ == "__main__":
 
-    chosen = 20
+    chosen = 60
     chosen_index = 2
 
     problem_file = f"data/estein{chosen}.txt"
@@ -61,7 +65,7 @@ if __name__ == "__main__":
     print("Best Theoritical Score :",solution_tree.get_normalized_score())
 
     tree = EuclideanSteinerTree(terminals)
-    score,moves,indexes = greedy_search(tree)
+    score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10)
 
     print("Greedy Score :",score)
 
@@ -72,6 +76,12 @@ if __name__ == "__main__":
     ax.set_title(f"{tree.get_normalized_score()} -- Best score {solution_tree.get_normalized_score()}")
     plt.show()
 
+    merges = 0
+    swaps = 0
+    for k in moves : 
+        if len(k)==3 : merges+=1
+        else : swaps+=1
+    print(f"{merges} Merges and {swaps} Swaps out of {len(moves)} Moves")
 
         
 
