@@ -4,6 +4,8 @@ from scipy.spatial import distance
 from itertools import product,combinations
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+import random
+
 #from torchmin import minimize
 #import torch
 
@@ -298,6 +300,19 @@ class EuclideanSteinerTree:
                             c="green", linewidth=2, visible=visible,linestyle="dotted")
             lines.append(line)
         return lines
+    
+    def playout(self,max_iter = 1e4):
+        end = False
+        iter = 0
+        while (not end) and (iter < max_iter):
+            moves = self.legal_moves()+["STOP"]
+            n = random.randint (0, len (moves) - 1)
+            if n == (len(moves)-1):
+                end = True
+            else : 
+                self.play_move(moves[n])
+            iter+=1
+
 
 def create_problem(relevant_connexion_st,relevant_connexion_ss,jump):
     def function_to_minimize(X):
@@ -314,6 +329,7 @@ def create_problem(relevant_connexion_st,relevant_connexion_ss,jump):
             )
         return sum
     return function_to_minimize
+
     
 if __name__ == "__main__":
     # Define a simple test case: a square with a central Steiner point
@@ -324,6 +340,7 @@ if __name__ == "__main__":
     tree.plot_tree()
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree(edge_only=True)
+    tree.playout()
     #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
     #print(tree.get_swaps())
     pass
