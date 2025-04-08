@@ -32,6 +32,7 @@ def greedy_search(tree : EuclideanSteinerTree,Verbose = False,max_depth = 1e9,pa
 
         move_args = [(i,tree, move) for i,move in enumerate(legal_moves)]
         random.shuffle(move_args)
+
         if parallel :
             chunksize = max(1, len(move_args) // (os.cpu_count() * 4))
             results = process_map(eval_move, move_args,chunksize = chunksize)
@@ -66,15 +67,21 @@ def greedy_search(tree : EuclideanSteinerTree,Verbose = False,max_depth = 1e9,pa
     return best_score,moves,indexes
 
 def monte_carlo_scoring(tree: EuclideanSteinerTree,num_sim :int):
-    test_tree = copy.deepcopy(tree)
     mean_score = 0
     for i in tqdm(range(num_sim),desc="Playout"):
+        test_tree = copy.deepcopy(tree)
         test_tree.playout()
         score = test_tree.get_normalized_score()
         mean_score+=score
     return mean_score/num_sim
 
-def monte_carlo_eval_move(args):pass
+def monte_carlo_eval_move(args):
+    i,tree,move,num_sim = args
+    test_tree = copy.deepcopy(tree)
+    test_tree.play_move(move)
+    mean_score = monte_carlo_scoring(test_tree,num_sim)
+    return mean_score
+
 def flat_monte_carlo_search(tree : EuclideanSteinerTree,
                             Verbose = False,max_depth = 1e9,num_sim = 100,parallel = False):
 
@@ -94,22 +101,27 @@ def flat_monte_carlo_search(tree : EuclideanSteinerTree,
     while True and (depth < max_depth) :
         depth+=1
 
-        move_args = [(tree, move) for move in legal_moves]
+        move_args = [(i,tree, move,num_sim) for i,move in enumerate(legal_moves)]
+        random.shuffle(move_args)
+
         if parallel :
             chunksize = max(1, len(move_args) // (os.cpu_count() * 2))
-            results = process_map(eval_move, move_args,chunksize = chunksize)
+            results = process_map(monte_carlo_eval_move, move_args,chunksize = chunksize)
+            
+        else :
+            results = [0]*len(move_args)
+            enum = enumerate(move_args)
+            if Verbose : enum = enumerate(tqdm(move_args))
+            for idx,move_args in enum :
+                score = monte_carlo_eval_move(move_args)
+                results[idx] = score
 
-
-        enum = enumerate(legal_moves)
-        if Verbose : enum = enumerate(tqdm(legal_moves))
-        for idx,move in enum :
-            test_tree = copy.deepcopy(tree)
-            test_tree.play_move(move)
-            mean_score = monte_carlo_scoring(test_tree,num_sim)
-            if mean_score > best_score :
+        for idx,score in enumerate(results):
+            if score > best_score :
+                best_score = score
+                i,_, move = move_args[idx]
                 best_move = move
-                best_score = mean_score
-                best_idx = idx+1
+                best_idx = i+1
         
         if best_move!="STOP":
 
@@ -128,7 +140,7 @@ def flat_monte_carlo_search(tree : EuclideanSteinerTree,
 
 if __name__ == "__main__":
 
-    chosen = 10
+    chosen = 20
     chosen_index = 2
 
     problem_file = f"data/estein{chosen}.txt"
@@ -147,11 +159,11 @@ if __name__ == "__main__":
 
     tree = EuclideanSteinerTree(terminals)
 
-    score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
-    print("Greedy Score :",score)
+    #score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
+    #print("Greedy Score :",score)
 
-    #score,moves,indexes = flat_monte_carlo_search(tree,Verbose=True,max_depth=10)
-    #print("Monte Carlo Score :",score)
+    score,moves,indexes = flat_monte_carlo_search(tree,Verbose=True,max_depth=10)
+    print("Monte Carlo Score :",score)
     
 
     fig, ax = plt.subplots(figsize=(8, 8))

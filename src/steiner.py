@@ -301,7 +301,7 @@ class EuclideanSteinerTree:
             lines.append(line)
         return lines
     
-    def playout(self,max_iter = 1e4):
+    def playout(self,max_iter = 100):
         end = False
         iter = 0
         while (not end) and (iter < max_iter):
@@ -336,6 +336,7 @@ if __name__ == "__main__":
     terminals = np.array([(0., 0),(0, 1), (1, 0), (1, 1)])#,(2, 0.5)],dtype=np.float32)
     tree = EuclideanSteinerTree(terminals)
     tree.plot_tree()
+
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
     tree.play_move(tree.legal_moves()[-1])
