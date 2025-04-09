@@ -176,7 +176,7 @@ def UCT_best_move(tree : EuclideanSteinerTree, Table : TranspositionTable):
         tree.playout()
         return tree.get_normalized_score()
 
-def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = True):
+def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 3, Verbose = True):
     """ UCT code inspired by the one given in class"""
     
     best_score = tree.get_normalized_score()
@@ -190,7 +190,7 @@ def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = Tr
         depth+= 1
         enum = enumerate(legal_moves)
         if Verbose : enum = enumerate(tqdm(legal_moves))
-        best_value = 0
+        best_value = -100000
         
         Table = TranspositionTable()
         for _ in tqdm(range(num_sim)) :
@@ -228,8 +228,8 @@ def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = Tr
 
 if __name__ == "__main__":
 
-    chosen = 10
-    chosen_index = 2
+    chosen = 20
+    chosen_index = 1
 
     problem_file = f"data/estein{chosen}.txt"
     solution_file = f"data/estein{chosen}opt.txt"
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     #score,moves,indexes = flat_monte_carlo_search(tree,Verbose=True,max_depth=10)
     #print("Monte Carlo Score :",score)
     
-    score,moves,indexes = UCT(tree,Verbose=False,max_depth=10)
+    score,moves,indexes = UCT(tree,Verbose=False,max_depth=100)
     print("UCT :",score)
 
     fig, ax = plt.subplots(figsize=(8, 8))
