@@ -126,6 +126,79 @@ def flat_monte_carlo_search(tree : EuclideanSteinerTree,
     return best_score,moves,indexes
 
 
+class TranspositionTable():
+    """Dictionnary where each entry correspond to the hash of a board."""
+    def __init__(self):
+        self.Table = {}
+    
+    def add(self,tree : EuclideanSteinerTree):
+        scores = [0.0 for _ in range(len(tree.legal_moves()))]
+        playouts = [0.0 for _ in range(len(tree.legal_moves()))]
+        self.Table[tree.get_hash()] = [0, playouts, scores]
+
+    def look(self,tree):
+        return self.Table.get(tree.get_hash(), None)
+
+
+def UCT(tree : EuclideanSteinerTree, Table : TranspositionTable, Verbose = True):
+    """ UCT code inspired by the one given in class"""
+    t = Table.look(tree)
+    legal_moves = tree.legal_moves()
+    best_move = legal_moves[0]
+    best_idx = 1
+
+    # If board has been seen update statistics
+    if t!= None:
+        best_value = -99999 # Arbitrary initialization
+        enum = enumerate(legal_moves)
+        if Verbose : enum = enumerate(tqdm(legal_moves))
+        for idx,move in enum :
+            n = t[0]
+            ni = t[1][idx]
+            si = t[2][idx]
+
+            if ni > 0:
+                Q = si / ni
+                value = Q + 0.4 * np.sqrt(np.log(n) / ni)
+                
+                if value > best_value :
+                    best_value = value
+                    best_idx = idx+1
+                    best_move = move
+            
+            tree.play_move(best_move)
+            res = UCT(tree,Table)
+            t[0] += 1
+            t[1][best_idx] += 1
+            t[2][best_idx] += res
+        return res
+    
+    # Else explore randomly from this root
+    else :
+        Table.add(tree)
+        tree.playout()
+        return tree.get_normalized_score()
+
+def BestMoveUCT(tree : EuclideanSteinerTree, num_sim = 100):
+    Table = TranspositionTable()
+    depth = 0
+    for _ in range(num_sim):
+        test_tree = copy.deepcopy(tree)
+        res = UCT(test_tree,Table)
+    print(Table)
+    t = Table.look(tree)
+    moves = tree.legal_moves()
+    best_move = moves[0]
+    best_value = t[1][0]
+    enum = enumerate(moves)
+    for (idx,move) in enum:
+        if (t[1][idx] > best_value):
+            best_value = t[1][idx]
+            best_move = move
+    return best_move
+
+
+
 if __name__ == "__main__":
 
     chosen = 10
@@ -148,8 +221,9 @@ if __name__ == "__main__":
     tree = EuclideanSteinerTree(terminals)
 
     score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
-    print("Greedy Score :",score)
+    #print("Greedy Score :",score)
 
+    m = BestMoveUCT(tree)
     #score,moves,indexes = flat_monte_carlo_search(tree,Verbose=True,max_depth=10)
     #print("Monte Carlo Score :",score)
     

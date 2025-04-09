@@ -249,7 +249,7 @@ class EuclideanSteinerTree:
         return sum(nx.get_edge_attributes(self.graph, 'weight').values())
 
     def get_normalized_score(self):
-        return 1-(self.get_score()/self.MST_score)
+        return (1-(self.get_score()/self.MST_score)) / 7.45 # see paper
         
     def fill_plot(self,ax):
         ax.clear()
