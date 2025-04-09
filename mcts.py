@@ -140,63 +140,52 @@ class TranspositionTable():
         return self.Table.get(tree.get_hash(), None)
 
 
-def UCT(tree : EuclideanSteinerTree, Table : TranspositionTable, Verbose = True):
+def UCT(tree : EuclideanSteinerTree, max_depth,num_sim, Verbose = True):
     """ UCT code inspired by the one given in class"""
+    
     t = Table.look(tree)
+    best_score = tree.get_normalized_score()
     legal_moves = tree.legal_moves()
-    best_move = legal_moves[0]
-    best_idx = 1
 
-    # If board has been seen update statistics
-    if t!= None:
-        best_value = -99999 # Arbitrary initialization
+    best_move = "STOP"
+    best_idx = "q"
+
+    moves = []
+    indexes  = []
+    depth = 0
+
+    while True and (depth < max_depth) :
+        Table = TranspositionTable()
+        depth+=1
+
         enum = enumerate(legal_moves)
         if Verbose : enum = enumerate(tqdm(legal_moves))
+        best_value = 0
         for idx,move in enum :
-            n = t[0]
-            ni = t[1][idx]
-            si = t[2][idx]
-
-            if ni > 0:
-                Q = si / ni
-                value = Q + 0.4 * np.sqrt(np.log(n) / ni)
-                
-                if value > best_value :
-                    best_value = value
-                    best_idx = idx+1
-                    best_move = move
+            test_tree = copy.deepcopy(tree)
+            test_tree.play_move(move)
+            mean_score = monte_carlo_scoring(test_tree,num_sim)
+            value = mean_score + 0.4*np.sqrt(np.log(N) / num_sim)
+            # Misconception about how to compute N/ni, I will fix it tonight
             
+            if value > best_value:
+                best_move = move
+                best_idx = idx+1
+                best_value = value
+        
+        if best_move!="STOP":
+
             tree.play_move(best_move)
-            res = UCT(tree,Table)
-            t[0] += 1
-            t[1][best_idx] += 1
-            t[2][best_idx] += res
-        return res
-    
-    # Else explore randomly from this root
-    else :
-        Table.add(tree)
-        tree.playout()
-        return tree.get_normalized_score()
+            moves.append(best_move)
+            indexes.append(best_idx)
 
-def BestMoveUCT(tree : EuclideanSteinerTree, num_sim = 100):
-    Table = TranspositionTable()
-    depth = 0
-    for _ in range(num_sim):
-        test_tree = copy.deepcopy(tree)
-        res = UCT(test_tree,Table)
-    print(Table)
-    t = Table.look(tree)
-    moves = tree.legal_moves()
-    best_move = moves[0]
-    best_value = t[1][0]
-    enum = enumerate(moves)
-    for (idx,move) in enum:
-        if (t[1][idx] > best_value):
-            best_value = t[1][idx]
-            best_move = move
-    return best_move
-
+            ## Back to original state
+            best_move = "STOP"
+            best_idx = "q"
+            legal_moves = tree.legal_moves()
+        else :
+            return best_score,moves,indexes
+    return best_score,moves,indexes
 
 
 if __name__ == "__main__":
@@ -223,7 +212,7 @@ if __name__ == "__main__":
     score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
     #print("Greedy Score :",score)
 
-    m = BestMoveUCT(tree)
+    #m = BestMoveUCT(tree)
     #score,moves,indexes = flat_monte_carlo_search(tree,Verbose=True,max_depth=10)
     #print("Monte Carlo Score :",score)
     
