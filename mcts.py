@@ -140,39 +140,77 @@ class TranspositionTable():
         return self.Table.get(tree.get_hash(), None)
 
 
-def UCT(tree : EuclideanSteinerTree, max_depth,num_sim, Verbose = True):
+def UCT_best_move(tree : EuclideanSteinerTree, Table : TranspositionTable):
+    t = Table.look(tree)
+    if t != None:
+        legal_moves = tree.legal_moves()
+        best_move = legal_moves[0]
+        best_idx = 1
+        best_value = 0
+        
+        enum = enumerate(legal_moves)
+        
+        for (idx,move) in enum:
+            n = t[0]
+            ni = t[1][idx]
+            si = t[2][idx]
+            value = 100
+            
+            if ni > 0:
+                value = si/ni + 0.4 * np.sqrt(np.log (n) / ni)
+                
+            if value > best_value:
+                best_value = value
+                best_move = move
+                best_idx = idx+1
+   
+        tree.play_move(best_move)
+        res = UCT_best_move(tree,Table)
+        t[0] += 1
+        t[1][best_idx] += 1
+        t[2][best_idx] += res
+        return res
+
+    else :
+        Table.add(tree)
+        tree.playout()
+        return tree.get_normalized_score()
+
+def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = True):
     """ UCT code inspired by the one given in class"""
     
-    t = Table.look(tree)
     best_score = tree.get_normalized_score()
     legal_moves = tree.legal_moves()
-
-    best_move = "STOP"
-    best_idx = "q"
 
     moves = []
     indexes  = []
     depth = 0
-
-    while True and (depth < max_depth) :
-        Table = TranspositionTable()
-        depth+=1
-
+    
+    while True and (depth < max_depth) :  
+        depth+= 1
         enum = enumerate(legal_moves)
         if Verbose : enum = enumerate(tqdm(legal_moves))
         best_value = 0
-        for idx,move in enum :
-            test_tree = copy.deepcopy(tree)
-            test_tree.play_move(move)
-            mean_score = monte_carlo_scoring(test_tree,num_sim)
-            value = mean_score + 0.4*np.sqrt(np.log(N) / num_sim)
-            # Misconception about how to compute N/ni, I will fix it tonight
-            
-            if value > best_value:
-                best_move = move
-                best_idx = idx+1
-                best_value = value
         
+        Table = TranspositionTable()
+        for _ in tqdm(range(num_sim)) :
+            test_tree = copy.deepcopy(tree)
+            score = UCT_best_move(test_tree,Table)
+            
+        
+        t = Table.look(tree)
+        legal_moves = tree.legal_moves()
+
+        best_move = legal_moves[0]
+        best_value = t[1][0]
+        best_idx = 1
+        enum = enumerate(legal_moves)
+        if Verbose : enum = enumerate(tqdm(legal_moves))
+        for (idx,move) in enum:
+            if (t[1][idx] > best_value):
+                best_value = t[1][idx]
+                best_move = move
+
         if best_move!="STOP":
 
             tree.play_move(best_move)
@@ -209,13 +247,14 @@ if __name__ == "__main__":
 
     tree = EuclideanSteinerTree(terminals)
 
-    score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
+    #score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
     #print("Greedy Score :",score)
 
-    #m = BestMoveUCT(tree)
     #score,moves,indexes = flat_monte_carlo_search(tree,Verbose=True,max_depth=10)
     #print("Monte Carlo Score :",score)
     
+    score,moves,indexes = UCT(tree,Verbose=False,max_depth=10)
+    print("UCT :",score)
 
     fig, ax = plt.subplots(figsize=(8, 8))
     
