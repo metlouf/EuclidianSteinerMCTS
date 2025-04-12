@@ -173,6 +173,15 @@ class EuclideanSteinerTree:
 
     def get_hash(self):
         return nx.weisfeiler_lehman_graph_hash(self.graph)
+    
+    def get_hashV2(self):
+        steiner_list= []
+        for node in self.graph:
+            if (self.graph.nodes[node]['type']=='steiner'):
+                pos = self.graph.nodes[node]['position']
+                steiner_list.append(tuple(round(float(x), 2) for x in pos))
+        tuple_to_hash = tuple(sorted(steiner_list))
+        return tuple_to_hash
 
     def optimize(self):
         variables_dict = {}
