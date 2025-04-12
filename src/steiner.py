@@ -171,17 +171,21 @@ class EuclideanSteinerTree:
         
         self.optimize()
 
-    def get_hash(self):
+    def get_weisfeiler_lehman_graph_hash(self):
         return nx.weisfeiler_lehman_graph_hash(self.graph)
     
-    def get_hashV2(self):
-        steiner_list= []
-        for node in self.graph:
-            if (self.graph.nodes[node]['type']=='steiner'):
-                pos = self.graph.nodes[node]['position']
-                steiner_list.append(tuple(round(float(x), 2) for x in pos))
-        tuple_to_hash = tuple(sorted(steiner_list))
-        return tuple_to_hash
+    def get_hash(self):
+        hash_list= []
+        for e in self.graph.edges():
+            tuple_list = []
+            t_0 = self.graph.nodes[e[0]]['position']
+            t_1 = self.graph.nodes[e[1]]['position']
+            for pos in [t_0,t_1]:
+                tuple_list.append(tuple(round(float(x), 2) for x in pos))
+            edge = tuple(sorted(tuple_list))
+            hash_list.append(edge)
+        tuple_to_hash = tuple(sorted(hash_list))
+        return hash(tuple_to_hash)
 
     def optimize(self):
         variables_dict = {}
@@ -354,6 +358,7 @@ if __name__ == "__main__":
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
     tree.play_move(tree.legal_moves()[-1])
+    print(tree.get_hashV2())
     tree.plot_tree(edge_only=True)
     tree.playout()
     #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
