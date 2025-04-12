@@ -32,6 +32,7 @@ def greedy_search(tree : EuclideanSteinerTree,Verbose = False,max_depth = 1e9,pa
 
         move_args = [(i,tree, move) for i,move in enumerate(legal_moves)]
         random.shuffle(move_args)
+
         if parallel :
             chunksize = max(1, len(move_args) // (os.cpu_count() * 4))
             results = process_map(eval_move, move_args,chunksize = chunksize)
@@ -64,66 +65,46 @@ def greedy_search(tree : EuclideanSteinerTree,Verbose = False,max_depth = 1e9,pa
         else :
             return best_score,moves,indexes
     return best_score,moves,indexes
-
-def monte_carlo_scoring(tree: EuclideanSteinerTree,num_sim :int):
-    test_tree = copy.deepcopy(tree)
+"""
+def monte_carlo_scoring(tree: EuclideanSteinerTree,num_sim :int,Verbose = False):
     mean_score = 0
-    for i in tqdm(range(num_sim),desc="Playout"):
+    if Verbose : rg = tqdm(range(num_sim),desc="Playout")
+    else : rg = range(num_sim)
+    for i in rg :
+        test_tree = copy.deepcopy(tree)
         test_tree.playout()
         score = test_tree.get_normalized_score()
         mean_score+=score
     return mean_score/num_sim
 
-def monte_carlo_eval_move(args):pass
+def monte_carlo_eval_move(args):
+    i,tree,move,num_sim,verbose = args
+    test_tree = copy.deepcopy(tree)
+    test_tree.play_move(move)
+    mean_score = monte_carlo_scoring(test_tree,num_sim,Verbose=verbose)
+    return mean_score
+"""
+
+def monte_carlo_eval_move(tree):
+    test_tree = copy.deepcopy(tree)
+    move_list,move_idx_list = test_tree.playout()
+    return test_tree.get_normalized_score(),move_list,move_idx_list
+
 def flat_monte_carlo_search(tree : EuclideanSteinerTree,
-                            Verbose = False,max_depth = 1e9,num_sim = 100,parallel = False):
-
-    legal_moves = tree.legal_moves()
-
-    ## Score Stopping 
-
-    best_score = monte_carlo_scoring(tree,num_sim)
-    best_move = "STOP"
-    best_idx = "q"
+                            Verbose = False,num_sim = 1000000,parallel = False):
     
+    best_score = 0
+    best_move = []
+    best_idx = []
 
-    moves = []
-    indexes  = []
-    depth = 0
-
-    while True and (depth < max_depth) :
-        depth+=1
-
-        move_args = [(tree, move) for move in legal_moves]
-        if parallel :
-            chunksize = max(1, len(move_args) // (os.cpu_count() * 2))
-            results = process_map(eval_move, move_args,chunksize = chunksize)
-
-
-        enum = enumerate(legal_moves)
-        if Verbose : enum = enumerate(tqdm(legal_moves))
-        for idx,move in enum :
-            test_tree = copy.deepcopy(tree)
-            test_tree.play_move(move)
-            mean_score = monte_carlo_scoring(test_tree,num_sim)
-            if mean_score > best_score :
-                best_move = move
-                best_score = mean_score
-                best_idx = idx+1
+    for i in tqdm(range(num_sim)):
+        s,ml,mil = monte_carlo_eval_move(tree)
+        if s>best_score:
+            best_score=s
+            best_move,best_idx = ml,mil
+            print("best so far",s)
         
-        if best_move!="STOP":
-
-            tree.play_move(best_move)
-            moves.append(best_move)
-            indexes.append(best_idx)
-
-            ## Back to original state
-            best_move = "STOP"
-            best_idx = "q"
-            legal_moves = tree.legal_moves()
-        else :
-            return best_score,moves,indexes
-    return best_score,moves,indexes
+    return best_score,best_move,best_idx
 
 
 class TranspositionTable():
@@ -233,7 +214,7 @@ def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = Tr
 
 if __name__ == "__main__":
 
-    chosen = 10
+    chosen = 20
     chosen_index = 2
 
     problem_file = f"data/estein{chosen}.txt"

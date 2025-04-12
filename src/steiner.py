@@ -171,8 +171,21 @@ class EuclideanSteinerTree:
         
         self.optimize()
 
-    def get_hash(self):
+    def get_weisfeiler_lehman_graph_hash(self):
         return nx.weisfeiler_lehman_graph_hash(self.graph)
+    
+    def get_hash(self):
+        hash_list= []
+        for e in self.graph.edges():
+            tuple_list = []
+            t_0 = self.graph.nodes[e[0]]['position']
+            t_1 = self.graph.nodes[e[1]]['position']
+            for pos in [t_0,t_1]:
+                tuple_list.append(tuple(round(float(x), 2) for x in pos))
+            edge = tuple(sorted(tuple_list))
+            hash_list.append(edge)
+        tuple_to_hash = tuple(sorted(hash_list))
+        return hash(tuple_to_hash)
 
     def optimize(self):
         variables_dict = {}
@@ -301,9 +314,11 @@ class EuclideanSteinerTree:
             lines.append(line)
         return lines
     
-    def playout(self,max_iter = 1e4):
+    def playout(self,max_iter = 10):
         end = False
         iter = 0
+        move_list = []
+        move_idx_list = []
         while (not end) and (iter < max_iter):
             moves = self.legal_moves()+["STOP"]
             n = random.randint (0, len (moves) - 1)
@@ -311,7 +326,10 @@ class EuclideanSteinerTree:
                 end = True
             else : 
                 self.play_move(moves[n])
+            move_list.append(moves[n])
+            move_idx_list.append(n)
             iter+=1
+        return move_list,move_idx_list
 
 
 def create_problem(relevant_connexion_st,relevant_connexion_ss,jump):
@@ -336,9 +354,11 @@ if __name__ == "__main__":
     terminals = np.array([(0., 0),(0, 1), (1, 0), (1, 1)])#,(2, 0.5)],dtype=np.float32)
     tree = EuclideanSteinerTree(terminals)
     tree.plot_tree()
+
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
     tree.play_move(tree.legal_moves()[-1])
+    print(tree.get_hashV2())
     tree.plot_tree(edge_only=True)
     tree.playout()
     #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
