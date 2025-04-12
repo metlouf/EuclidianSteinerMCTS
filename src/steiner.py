@@ -301,9 +301,11 @@ class EuclideanSteinerTree:
             lines.append(line)
         return lines
     
-    def playout(self,max_iter = 100):
+    def playout(self,max_iter = 10):
         end = False
         iter = 0
+        move_list = []
+        move_idx_list = []
         while (not end) and (iter < max_iter):
             moves = self.legal_moves()+["STOP"]
             n = random.randint (0, len (moves) - 1)
@@ -311,7 +313,10 @@ class EuclideanSteinerTree:
                 end = True
             else : 
                 self.play_move(moves[n])
+            move_list.append(moves[n])
+            move_idx_list.append(n)
             iter+=1
+        return move_list,move_idx_list
 
 
 def create_problem(relevant_connexion_st,relevant_connexion_ss,jump):
