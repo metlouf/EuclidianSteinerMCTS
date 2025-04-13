@@ -34,6 +34,7 @@ class EuclideanSteinerTree:
         # Compute minimum spanning tree
         self.graph = nx.minimum_spanning_tree(self.graph, weight='weight')
         self.MST_score = self.get_score()
+        self.terminal = False
 
 
     def get_merges(self):
@@ -78,14 +79,17 @@ class EuclideanSteinerTree:
         moves = []
         moves += self.get_swaps()
         moves += self.get_merges()
+        moves += ['STOP']
         return moves
     
     def play_move(self, move):
         if len(move)==2 :
             self.play_swap(move)
-        
         elif len(move)==3 :
             self.replace_triangle_with_steiner_point(move)
+        elif move == 'STOP':
+            self.terminal = True
+            pass
         else :
             raise ValueError
 
@@ -262,7 +266,7 @@ class EuclideanSteinerTree:
         return sum(nx.get_edge_attributes(self.graph, 'weight').values())
 
     def get_normalized_score(self):
-        return (1-(self.get_score()/self.MST_score)) / 7.45 # see paper
+        return (1-(self.get_score()/self.MST_score)) #/ 7.45  see paper
         
     def fill_plot(self,ax):
         ax.clear()
@@ -320,7 +324,7 @@ class EuclideanSteinerTree:
         move_list = []
         move_idx_list = []
         while (not end) and (iter < max_iter):
-            moves = self.legal_moves()+["STOP"]
+            moves = self.legal_moves()
             n = random.randint (0, len (moves) - 1)
             if n == (len(moves)-1):
                 end = True
