@@ -186,7 +186,7 @@ class EuclideanSteinerTree:
             t_0 = self.graph.nodes[e[0]]['position']
             t_1 = self.graph.nodes[e[1]]['position']
             for pos in [t_0,t_1]:
-                tuple_list.append(tuple(round(float(x), 2) for x in pos))
+                tuple_list.append(tuple(round(float(x), 4) for x in pos))
             edge = tuple(sorted(tuple_list))
             hash_list.append(edge)
         tuple_to_hash = tuple(sorted(hash_list))

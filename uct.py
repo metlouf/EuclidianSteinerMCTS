@@ -114,7 +114,7 @@ def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = Tr
 
 if __name__ == "__main__":
 
-    chosen = 20
+    chosen = 10
     chosen_index = 3
 
     problem_file = f"data/estein{chosen}.txt"
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     tree = EuclideanSteinerTree(terminals)
     
-    score,moves,indexes = UCT(tree,Verbose=False,max_depth=6,num_sim=10000)
+    score,moves,indexes = UCT(tree,Verbose=False,max_depth=7,num_sim=1000)
     print("UCT :",tree.get_normalized_score())
 
     fig, ax = plt.subplots(figsize=(8, 8))

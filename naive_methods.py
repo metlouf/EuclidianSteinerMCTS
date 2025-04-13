@@ -109,8 +109,8 @@ def flat_monte_carlo_search(tree : EuclideanSteinerTree,
 
 if __name__ == "__main__":
 
-    chosen = 20
-    chosen_index = 9
+    chosen = 10
+    chosen_index = 2
 
     problem_file = f"data/estein{chosen}.txt"
     solution_file = f"data/estein{chosen}opt.txt"
@@ -128,11 +128,11 @@ if __name__ == "__main__":
 
     tree = EuclideanSteinerTree(terminals)
 
-    #score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
-    #print("Greedy Score :",score)
+    score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
+    print("Greedy Score :",score)
 
-    score,moves,indexes = flat_monte_carlo_search(tree)
-    print("Monte Carlo Score :",score)
+    #score,moves,indexes = flat_monte_carlo_search(tree)
+    #print("Monte Carlo Score :",score)
     
 
     fig, ax = plt.subplots(figsize=(8, 8))
