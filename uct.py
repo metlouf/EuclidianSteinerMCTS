@@ -31,7 +31,7 @@ def UCT_best_move(tree : EuclideanSteinerTree, Table : TranspositionTable,depth,
     if t != None:
         legal_moves = tree.legal_moves()
 
-        best_move = legal_moves[0]
+        best_move = "STOP"
         best_idx = 0
         best_value = 0
         
@@ -67,7 +67,7 @@ def UCT_best_move(tree : EuclideanSteinerTree, Table : TranspositionTable,depth,
         tree.playout(max_iter=0)
         return tree.get_normalized_score()
 
-def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = True,C = 0.004):
+def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = True,C = 0.01):
     """ UCT code inspired by the one given in class"""
     
     depth = 0
@@ -86,14 +86,15 @@ def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = Tr
 
     best_move = "STOP"
     best_score = -10e10
-    best_idx = 1
+    best_idx = -1
 
     while True and (depth < max_depth) :
         enum = enumerate(legal_moves)
         for (idx,move) in enum:
-            if (t[2][idx] >= best_score):
+            if (t[2][idx] > best_score):
                 best_score = t[2][idx]
                 best_move = move
+                best_idx = idx+1
 
         if best_move!="STOP":
 
@@ -132,7 +133,7 @@ if __name__ == "__main__":
 
     tree = EuclideanSteinerTree(terminals)
     
-    score,moves,indexes = UCT(tree,Verbose=False,max_depth=6,num_sim=1000)
+    score,moves,indexes = UCT(tree,Verbose=False,max_depth=6,num_sim=10000)
     print("UCT :",tree.get_normalized_score())
 
     fig, ax = plt.subplots(figsize=(8, 8))

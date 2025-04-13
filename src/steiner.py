@@ -76,6 +76,7 @@ class EuclideanSteinerTree:
         return swap_moves
 
     def legal_moves(self):
+        if self.terminal : return []
         moves = []
         moves += self.get_swaps()
         moves += self.get_merges()
