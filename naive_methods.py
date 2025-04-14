@@ -7,6 +7,9 @@ from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 import os
 import random
+import argparse
+import json
+import datetime
 
 def eval_move(args):
     i,tree,move = args
@@ -41,8 +44,8 @@ def greedy_search(tree : EuclideanSteinerTree,Verbose = False,max_depth = 1e9,pa
             results = [0]*len(move_args)
             enum = enumerate(move_args)
             if Verbose : enum = enumerate(tqdm(move_args))
-            for idx,move_args in enum :
-                score = eval_move(move_args)
+            for idx,move_arg in enum :
+                score = eval_move(move_arg)
                 results[idx] = score
 
         for idx,score in enumerate(results):
@@ -91,7 +94,7 @@ def monte_carlo_eval_move(tree):
     return test_tree.get_normalized_score(),move_list,move_idx_list
 
 def flat_monte_carlo_search(tree : EuclideanSteinerTree,
-                            Verbose = False,num_sim = 1000000,parallel = False):
+                            Verbose = False,num_sim = 1000000,parallel = False,log_path = "log.json"):
     
     best_score = 0
     best_move = []
@@ -103,55 +106,92 @@ def flat_monte_carlo_search(tree : EuclideanSteinerTree,
             best_score=s
             best_move,best_idx = ml,mil
             print("best so far",s)
+
+            record = {
+                "step": i,
+                "score": s,
+                "move": ml,
+                "indexes": mil,
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            # Append record as a single JSON object (one per line) to the log file
+            with open(log_path, 'a') as f:
+                f.write(json.dumps(record) + "\n")
         
     return best_score,best_move,best_idx
 
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser(description="Steiner Tree Optimization")
+    
+    parser.add_argument('--chosen', type=int, help='Chosen problem number (e.g., 10)',default=10)
+    parser.add_argument('--chosen_index', type=int, help='Index inside the problem list',default=2)
+    parser.add_argument('--mode', type=str, choices=['greedy', 'montecarlo'], default='greedy', help='Search mode: greedy or montecarlo')
+    parser.add_argument('--max_depth', type=int, default=10, help='Max depth for greedy search')
+    parser.add_argument('--parallel', action='store_true', help='Enable parallelism for greedy search')
 
-    chosen = 10
-    chosen_index = 2
+    args = parser.parse_args()
 
-    problem_file = f"data/estein{chosen}.txt"
-    solution_file = f"data/estein{chosen}opt.txt"
+    # Load problem and solution
+    problem_file = f"data/estein{args.chosen}.txt"
+    solution_file = f"data/estein{args.chosen}opt.txt"
 
     list_of_problems = load_problem_file(problem_file)
     list_of_solutions = load_solution_file(solution_file)
 
-    terminals = np.array(list_of_problems[chosen_index],dtype=np.float32)
+    terminals = np.array(list_of_problems[args.chosen_index], dtype=np.float32)
 
     solution_tree = EuclideanSteinerTree(terminals)
     solution_tree.manually_load_steiner_points(
-        np.array(list_of_solutions[chosen_index]['steiner_points'])
+        np.array(list_of_solutions[args.chosen_index]['steiner_points'])
     )
-    print("Best Theoritical Score :",solution_tree.get_normalized_score())
+
+    best_theoretical_score = solution_tree.get_normalized_score()
+    print("Best Theoretical Score:", best_theoretical_score)
 
     tree = EuclideanSteinerTree(terminals)
 
-    score,moves,indexes = greedy_search(tree,Verbose=True,max_depth=10,parallel=True)
-    print("Greedy Score :",score)
+    if args.mode == 'greedy':
+        score, moves, indexes = greedy_search(tree, Verbose=True, max_depth=args.max_depth, parallel=args.parallel)
+    else:
+        score, moves, indexes = flat_monte_carlo_search(tree,log_path = f"log{args.chosen}/log_{args.chosen}_{args.chosen_index}_{args.mode}.json")
 
-    #score,moves,indexes = flat_monte_carlo_search(tree)
-    #print("Monte Carlo Score :",score)
-    
-
+    print(f"{args.mode.capitalize()} Score:", score)
+    '''
+    # Plot the result
     fig, ax = plt.subplots(figsize=(8, 8))
-    
     tree.fill_plot(ax)
-    solution_lines = solution_tree.fill_edge_only(ax)
+    solution_tree.fill_edge_only(ax)
     ax.set_title(f"{tree.get_normalized_score()} -- Best score {solution_tree.get_normalized_score()}")
     plt.show()
+    '''
+    # Analyze moves
+    merges = sum(1 for k in moves if len(k) == 3)
+    swaps = len(moves) - merges
 
-    merges = 0
-    swaps = 0
-    for k in moves : 
-        if len(k)==3 : merges+=1
-        else : swaps+=1
     print(f"{merges} Merges and {swaps} Swaps out of {len(moves)} Moves")
 
-        
+    # Save results
+    result_data = {
+        "mode": args.mode,
+        "chosen": args.chosen,
+        "chosen_index": args.chosen_index,
+        "score": score,
+        "best_theoretical_score": best_theoretical_score,
+        "merges": merges,
+        "swaps": swaps,
+        "total_moves": len(moves),
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
 
+    output = f"results/result_{args.chosen}_{args.chosen_index}_{args.mode}.json"
+    if output.endswith(".json"):
+        with open(output, 'w') as f:
+            json.dump(result_data, f, indent=4)
 
+if __name__ == "__main__":
+    main()
 
 
 
