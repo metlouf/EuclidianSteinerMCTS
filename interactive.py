@@ -86,7 +86,7 @@ def play_interactive_game(tree,solution_tree):
         solution_lines = solution_tree.fill_edge_only(ax,visible=solution_visible[0])
         ax.set_title(ax.get_title()+f" -- Best score {solution_tree.get_score()}")
         ax.xaxis.set_label_position('bottom')
-        ax.set_xlabel(f'Hash :{tree.get_hash()}'+f'\nHashV2 :{tree.get_hashV2()}')
+        ax.set_xlabel(f'Hash :{tree.get_hash()}')#+f'\nHashV2 :{tree.get_hashV2()}')
         plt.draw()
         print("Score :", tree.get_score())
         

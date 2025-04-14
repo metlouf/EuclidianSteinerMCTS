@@ -363,7 +363,7 @@ if __name__ == "__main__":
     tree.play_move(tree.legal_moves()[-1])
     tree.plot_tree()
     tree.play_move(tree.legal_moves()[-1])
-    print(tree.get_hashV2())
+    #print(tree.get_hashV2())
     tree.plot_tree(edge_only=True)
     tree.playout()
     #print(nx.weisfeiler_lehman_graph_hash(tree.graph))
