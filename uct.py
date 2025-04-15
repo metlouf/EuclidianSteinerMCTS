@@ -11,6 +11,7 @@ import json
 import argparse
 import datetime
 
+## Code Inspired by https://www.lamsade.dauphine.fr/~cazenave/Breakthrough.ipynb
 
 class TranspositionTable():
     """Dictionnary where each entry correspond to the hash of a board."""
@@ -95,6 +96,7 @@ def UCT(tree : EuclideanSteinerTree, max_depth = 1e9, num_sim = 10, Verbose = Tr
 
     while True and (depth < max_depth) :
         enum = enumerate(legal_moves)
+        depth+=1
         for (idx,move) in enum:
             if (t[2][idx] > best_score):
                 best_score = t[2][idx]
