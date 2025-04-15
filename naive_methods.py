@@ -186,6 +186,7 @@ def main():
     }
 
     output = f"results/result_{args.chosen}_{args.chosen_index}_{args.mode}.json"
+    os.makedirs(os.path.dirname(output), exist_ok=True)
     if output.endswith(".json"):
         with open(output, 'w') as f:
             json.dump(result_data, f, indent=4)

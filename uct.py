@@ -180,7 +180,8 @@ def main():
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    output = f"result100K/result_{args.chosen}_{args.chosen_index}_UCT.json"
+    output = f"results/result_{args.chosen}_{args.chosen_index}_UCT.json"
+    os.makedirs(os.path.dirname(output), exist_ok=True)
     if output.endswith(".json"):
         with open(output, 'w') as f:
             json.dump(result_data, f, indent=4)
