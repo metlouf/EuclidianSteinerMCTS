@@ -1,34 +1,34 @@
 #!/bin/bash
 
 # Start scripts in parallel and capture their PIDs
-python uct.py --chosen 20 --chosen_index 0  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 0  --num_sim 100000 &
 pid0=$!
 
-python uct.py --chosen 20 --chosen_index 1  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 1  --num_sim 100000 &
 pid1=$!
 
-python uct.py --chosen 20 --chosen_index 2  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 2  --num_sim 100000 &
 pid2=$!
 
-python uct.py --chosen 20 --chosen_index 3  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 3  --num_sim 100000 &
 pid3=$!
 
-python uct.py --chosen 20 --chosen_index 4  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 4  --num_sim 100000 &
 pid4=$!
 
-python uct.py --chosen 20 --chosen_index 5  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 5  --num_sim 100000 &
 pid5=$!
 
-python uct.py --chosen 20 --chosen_index 6  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 6  --num_sim 100000 &
 pid6=$!
 
-python uct.py --chosen 20 --chosen_index 7  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 7  --num_sim 100000 &
 pid7=$!
 
-python uct.py --chosen 20 --chosen_index 8  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 8  --num_sim 100000 &
 pid8=$!
 
-python uct.py --chosen 20 --chosen_index 9  --num_sim 200000 &
+python uct.py --chosen 10 --chosen_index 9  --num_sim 100000 &
 pid9=$!
 
 # Output the PIDs
